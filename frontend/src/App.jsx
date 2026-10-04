@@ -13,33 +13,41 @@ function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
+    setErrorMessage("");
+    setIsSubmitting(true);
 
-    if (isLogin) {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    try {
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
 
-      if (error) {
-        alert(error.message);
+        if (error) {
+          setErrorMessage(error.message);
+        }
       } else {
-        alert("Login successful!");
-      }
-    } else {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+        const { error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+        });
 
-      if (error) {
-        alert(error.message);
-      } else {
-        alert("Registration successful. You can now login.");
-        setIsLogin(true);
+        if (error) {
+          setErrorMessage(error.message);
+        } else {
+          alert("Registration successful. You can now login.");
+          setIsLogin(true);
+        }
       }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to connect. Check your internet connection and try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -62,6 +70,10 @@ function AuthForm() {
             type="email"
             placeholder="you@example.com"
             value={email}
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            inputMode="email"
             onChange={(e) => setEmail(e.target.value)}
             required
           />
@@ -73,20 +85,27 @@ function AuthForm() {
             type="password"
             placeholder="Enter your password"
             value={password}
+            autoComplete={isLogin ? "current-password" : "new-password"}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
         </label>
 
-        <button type="submit">
-          {isLogin ? "Sign in" : "Create account"}
+        {errorMessage && <p className="auth-error" role="alert">{errorMessage}</p>}
+
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Please wait..." : isLogin ? "Sign in" : "Create account"}
           <span aria-hidden="true">→</span>
         </button>
       </form>
 
       <button
         className="switch-button"
-        onClick={() => setIsLogin(!isLogin)}
+        onClick={() => {
+          setIsLogin(!isLogin);
+          setErrorMessage("");
+        }}
+        disabled={isSubmitting}
       >
         {isLogin
           ? "Create a new account"
